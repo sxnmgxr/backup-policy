@@ -1,0 +1,5 @@
+- name: Production Backup Playbook
+  hosts: localhost
+  gather_facts: yes
+  roles:
+    - backup

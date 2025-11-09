@@ -1,0 +1,33 @@
+# Destination: local / remote / azure
+backup_destination: "azure"
+backup_base_dir: "/opt/backups"
+remote_host: "192.168.1.100"
+remote_path: "/opt/backups"
+
+# Azure Blob configuration
+azure_storage_account: "mystorageaccount"
+azure_container: "backups"
+azure_sas_token: "YOUR_SAS_TOKEN"
+
+# Backup schedule (cron)
+backup_time: "02:00"  # 24h format
+backup_frequency: "daily" # daily / weekly
+
+# Backup sources
+backup_files:
+  - "/var/www/html"
+  - "/etc/nginx"
+
+backup_db:
+  - { name: "wordpress", type: "mysql", user: "root", password: "password" }
+
+# Retention in days
+retain_days: 7
+
+# Notification / SMTP
+notification_email: "admin@example.com"
+smtp_host: "localhost"
+smtp_port: 25
+
+# MySQL root password
+mysql_root_password: "your_root_password"
