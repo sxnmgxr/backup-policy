@@ -1,0 +1,47 @@
+{
+  "databases": [
+    {
+      "type": "mysql",
+      "name": "myapp_db",
+      "host": "localhost",
+      "port": 3306,
+      "username": "backup_user",
+      "password": "secure_password",
+      "backup_tables": true,
+      "backup_structure": true
+    },
+    {
+      "type": "postgresql", 
+      "name": "analytics_db",
+      "host": "localhost",
+      "port": 5432,
+      "username": "backup_user",
+      "password": "secure_password",
+      "backup_schema": true
+    }
+  ],
+  "projects": [
+    {
+      "name": "webapp",
+      "path": "/var/www/webapp",
+      "exclude_patterns": ["*.log", "tmp/*", "cache/*"]
+    },
+    {
+      "name": "api",
+      "path": "/opt/api",
+      "exclude_patterns": ["node_modules/*", "*.tmp"]
+    }
+  ],
+  "azure": {
+    "account_name": "{{ azure_account_name }}",
+    "sas_token": "{{ azure_sas_token }}",
+    "container_name": "{{ azure_container_name }}",
+    "retention_days": {{ azure_retention_days }}
+  },
+  "local_retention_days": {{ local_retention_days }},
+  "compression": "{{ compression_type }}",
+  "default_ports": {
+    "mysql": 3306,
+    "postgresql": 5432
+  }
+}

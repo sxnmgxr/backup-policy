@@ -1,0 +1,19 @@
+---
+# Azure Blob Storage Configuration
+azure_account_name: "yourstorageaccount"
+azure_sas_token: "sp=racwdli&st=2023-01-01T00:00:00Z&se=2024-01-01T00:00:00Z&sv=2022-11-02&sr=c&sig=your_signature"
+azure_container_name: "backups"
+
+# Backup Path Configuration
+backup_base_path: "/opt/backup-policy"
+
+# Retention Policies
+local_retention_days: 7
+azure_retention_days: 30
+
+# Backup Settings
+compression_type: "gz"
+
+# Default Database Ports (for reference)
+mysql_default_port: 3306
+postgresql_default_port: 5432
