@@ -2,11 +2,11 @@
   "databases": [
     {
       "type": "mysql",
-      "name": "myapp_db",
+      "name": "wordpress",
       "host": "localhost",
       "port": 3306,
-      "username": "backup_user",
-      "password": "secure_password",
+      "username": "wpuser",
+      "password": "sujan7410@",
       "backup_tables": true,
       "backup_structure": true
     },
@@ -16,19 +16,24 @@
       "host": "localhost",
       "port": 5432,
       "username": "backup_user",
-      "password": "secure_password",
+      "password": "secure_password_123",
       "backup_schema": true
     }
   ],
   "projects": [
     {
-      "name": "webapp",
-      "path": "/var/www/webapp",
+      "name": "cms",
+      "path": "/home/azureuser/cms",
       "exclude_patterns": ["*.log", "tmp/*", "cache/*"]
     },
     {
-      "name": "api",
-      "path": "/opt/api",
+      "name": "helicarbooking-test",
+      "path": "/home/azureuser/helicarbooking-test",
+      "exclude_patterns": ["node_modules/*", "*.tmp"]
+    },
+     {
+      "name": "nnine-food",
+      "path": "/home/azureuser/nnine-food",
       "exclude_patterns": ["node_modules/*", "*.tmp"]
     }
   ],

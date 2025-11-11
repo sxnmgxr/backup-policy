@@ -8,11 +8,31 @@ import datetime
 import sys
 from pathlib import Path
 
-# Configuration
-config = {{ backup_config | to_json | replace("'", "\\'") }}
+# Configuration - Convert JSON boolean values to Python boolean
+config_str = '''{{ backup_config | to_json }}'''
+config = json.loads(config_str)
+
 backup_base = "{{ backup_base_path }}"
 timestamp = "{{ timestamp }}"
 date_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+def any_excluded(path, exclude_patterns):
+    """Check if path matches any exclusion pattern"""
+    for pattern in exclude_patterns:
+        # Handle directory patterns like "tmp/*"
+        if pattern.endswith('/*'):
+            dir_pattern = pattern[:-2]
+            if path.startswith(dir_pattern):
+                return True
+        # Handle extension patterns like "*.log"
+        elif pattern.startswith('*.'):
+            ext = pattern[1:]
+            if path.endswith(ext):
+                return True
+        # Handle exact matches
+        elif pattern in path:
+            return True
+    return False
 
 def run_command(cmd, env_vars=None):
     """Execute shell command"""
@@ -83,15 +103,18 @@ def backup_project(project_config, backup_dir):
     
     try:
         with tarfile.open(backup_file, 'w:gz') as tar:
-            def exclusion_filter(file_path):
-                for pattern in exclude_patterns:
-                    if pattern.endswith('*') and file_path.startswith(pattern[:-1]):
-                        return True
-                    if file_path.endswith(pattern.lstrip('*')):
-                        return True
-                return False
-            
-            tar.add(project_path, arcname=project_name, exclude=exclusion_filter)
+            # Manual exclusion method (works with all Python versions)
+            for root, dirs, files in os.walk(project_path):
+                # Filter out excluded directories
+                dirs[:] = [d for d in dirs if not any_excluded(os.path.join(root, d), exclude_patterns)]
+                
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.join(project_name, os.path.relpath(file_path, project_path))
+                    
+                    # Check if file should be excluded
+                    if not any_excluded(file_path, exclude_patterns):
+                        tar.add(file_path, arcname=arcname)
         
         print(f"Project backup created: {backup_file}")
         return backup_file
