@@ -36,11 +36,14 @@ def backup_mysql(db_config, backup_dir):
     db_name = db_config['name']
     backup_file = os.path.join(backup_dir, f"{db_name}_{date_str}.sql")
     
+    # Use default port if not specified
+    port = db_config.get('port', config.get('default_ports', {}).get('mysql', 3306))
+    
     env_vars = {
         'MYSQL_PWD': db_config['password']
     }
     
-    cmd = f"mysqldump -h {db_config['host']} -P {db_config['port']} -u {db_config['username']} {db_name} > {backup_file}"
+    cmd = f"mysqldump -h {db_config['host']} -P {port} -u {db_config['username']} {db_name} > {backup_file}"
     
     if run_command(cmd, env_vars):
         print(f"MySQL backup created: {backup_file}")
@@ -52,11 +55,14 @@ def backup_postgresql(db_config, backup_dir):
     db_name = db_config['name']
     backup_file = os.path.join(backup_dir, f"{db_name}_{date_str}.sql")
     
+    # Use default port if not specified
+    port = db_config.get('port', config.get('default_ports', {}).get('postgresql', 5432))
+    
     env_vars = {
         'PGPASSWORD': db_config['password']
     }
     
-    cmd = f"pg_dump -h {db_config['host']} -p {db_config['port']} -U {db_config['username']} -d {db_name} -f {backup_file}"
+    cmd = f"pg_dump -h {db_config['host']} -p {port} -U {db_config['username']} -d {db_name} -f {backup_file}"
     
     if run_command(cmd, env_vars):
         print(f"PostgreSQL backup created: {backup_file}")
@@ -77,7 +83,15 @@ def backup_project(project_config, backup_dir):
     
     try:
         with tarfile.open(backup_file, 'w:gz') as tar:
-            tar.add(project_path, arcname=project_name, exclude=lambda x: any(pattern in x for pattern in exclude_patterns))
+            def exclusion_filter(file_path):
+                for pattern in exclude_patterns:
+                    if pattern.endswith('*') and file_path.startswith(pattern[:-1]):
+                        return True
+                    if file_path.endswith(pattern.lstrip('*')):
+                        return True
+                return False
+            
+            tar.add(project_path, arcname=project_name, exclude=exclusion_filter)
         
         print(f"Project backup created: {backup_file}")
         return backup_file

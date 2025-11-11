@@ -1,8 +1,8 @@
 ---
 # Azure Blob Storage Configuration
-azure_account_name: "nnineclientbackup"
-azure_sas_token: "sp=racwdl&st=2025-11-10T00:44:29Z&se=2025-11-10T08:59:29Z&sv=2024-11-04&sr=c&sig=7fD39i1gsVo%2FoCsvldZllgKV6CZs5cQ4pC0XES39Tvw%3D"
-azure_container_name: "nnineclientbackup"
+azure_account_name: "yourstorageaccount"
+azure_sas_token: "sp=racwdli&st=2023-01-01T00:00:00Z&se=2024-01-01T00:00:00Z&sv=2022-11-02&sr=c&sig=your_signature"
+azure_container_name: "backups"
 
 # Backup Path Configuration
 backup_base_path: "/opt/backup-policy"
@@ -13,3 +13,7 @@ azure_retention_days: 30
 
 # Backup Settings
 compression_type: "gz"
+
+# Default Database Ports (for reference)
+mysql_default_port: 3306
+postgresql_default_port: 5432

@@ -15,9 +15,9 @@
         mode: '0755'
       become: yes
 
-    - name: Load backup configuration from JSON
+    - name: Load backup configuration from JSON template
       set_fact:
-        backup_config: "{{ lookup('template', 'backup_config.json') | from_json }}"
+        backup_config: "{{ lookup('template', 'templates/backup_config.json') | from_json }}"
 
     - name: Validate backup configuration
       fail:

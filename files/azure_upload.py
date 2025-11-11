@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 import sys
 import os
-from azure.storage.blob import BlobServiceClient, BlobSasPermissions, generate_blob_sas
+from azure.storage.blob import BlobServiceClient
 from azure.core.exceptions import ResourceExistsError
-from datetime import datetime, timedelta
 
 def upload_file_to_blob_sas(file_path, container_name, blob_name):
     """Upload a file to Azure Blob Storage using SAS token"""
@@ -40,28 +39,6 @@ def upload_file_to_blob_sas(file_path, container_name, blob_name):
         
     except Exception as e:
         print(f"Error uploading to Azure Blob Storage: {str(e)}")
-        return False
-
-def list_containers_sas():
-    """List containers using SAS token (for testing)"""
-    account_name = os.getenv('AZURE_STORAGE_ACCOUNT_NAME')
-    sas_token = os.getenv('AZURE_STORAGE_SAS_TOKEN')
-    
-    if not account_name or not sas_token:
-        print("Error: AZURE_STORAGE_ACCOUNT_NAME or AZURE_STORAGE_SAS_TOKEN environment variables not set")
-        return False
-    
-    try:
-        account_url = f"https://{account_name}.blob.core.windows.net"
-        blob_service_client = BlobServiceClient(account_url=account_url, credential=sas_token)
-        
-        containers = blob_service_client.list_containers()
-        print("Available containers:")
-        for container in containers:
-            print(f" - {container.name}")
-        return True
-    except Exception as e:
-        print(f"Error listing containers: {str(e)}")
         return False
 
 if __name__ == "__main__":
