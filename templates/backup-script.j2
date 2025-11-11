@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+import os
+import json
+import subprocess
+import shutil
+import tarfile
+import datetime
+import sys
+from pathlib import Path
+
+# Configuration
+config = {{ backup_config | to_json | replace("'", "\\'") }}
+backup_base = "{{ backup_base_path }}"
+timestamp = "{{ timestamp }}"
+date_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+def run_command(cmd, env_vars=None):
+    """Execute shell command"""
+    env = os.environ.copy()
+    if env_vars:
+        env.update(env_vars)
+    
+    try:
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, env=env)
+        if result.returncode != 0:
+            print(f"Error executing: {cmd}")
+            print(f"Error: {result.stderr}")
+            return False
+        return True
+    except Exception as e:
+        print(f"Exception executing {cmd}: {str(e)}")
+        return False
+
+def backup_mysql(db_config, backup_dir):
+    """Backup MySQL database"""
+    db_name = db_config['name']
+    backup_file = os.path.join(backup_dir, f"{db_name}_{date_str}.sql")
+    
+    env_vars = {
+        'MYSQL_PWD': db_config['password']
+    }
+    
+    cmd = f"mysqldump -h {db_config['host']} -P {db_config['port']} -u {db_config['username']} {db_name} > {backup_file}"
+    
+    if run_command(cmd, env_vars):
+        print(f"MySQL backup created: {backup_file}")
+        return backup_file
+    return None
+
+def backup_postgresql(db_config, backup_dir):
+    """Backup PostgreSQL database"""
+    db_name = db_config['name']
+    backup_file = os.path.join(backup_dir, f"{db_name}_{date_str}.sql")
+    
+    env_vars = {
+        'PGPASSWORD': db_config['password']
+    }
+    
+    cmd = f"pg_dump -h {db_config['host']} -p {db_config['port']} -U {db_config['username']} -d {db_name} -f {backup_file}"
+    
+    if run_command(cmd, env_vars):
+        print(f"PostgreSQL backup created: {backup_file}")
+        return backup_file
+    return None
+
+def backup_project(project_config, backup_dir):
+    """Backup project folder"""
+    project_name = project_config['name']
+    project_path = project_config['path']
+    backup_file = os.path.join(backup_dir, f"{project_name}_{date_str}.tar.gz")
+    
+    if not os.path.exists(project_path):
+        print(f"Project path does not exist: {project_path}")
+        return None
+    
+    exclude_patterns = project_config.get('exclude_patterns', [])
+    
+    try:
+        with tarfile.open(backup_file, 'w:gz') as tar:
+            tar.add(project_path, arcname=project_name, exclude=lambda x: any(pattern in x for pattern in exclude_patterns))
+        
+        print(f"Project backup created: {backup_file}")
+        return backup_file
+    except Exception as e:
+        print(f"Error creating project backup: {str(e)}")
+        return None
+
+def upload_to_azure(file_path, container_name, blob_name):
+    """Upload file to Azure Blob Storage using SAS token"""
+    upload_script = os.path.join(backup_base, "azure_upload.py")
+    cmd = f"python3 {upload_script} '{file_path}' '{container_name}' '{blob_name}'"
+    return run_command(cmd)
+
+def main():
+    # Create timestamped backup directory
+    backup_dir = os.path.join(backup_base, f"backup_{date_str}")
+    os.makedirs(backup_dir, exist_ok=True)
+    
+    backup_files = []
+    
+    # Backup databases
+    if 'databases' in config:
+        for db in config['databases']:
+            if db['type'] == 'mysql':
+                backup_file = backup_mysql(db, backup_dir)
+            elif db['type'] == 'postgresql':
+                backup_file = backup_postgresql(db, backup_dir)
+            else:
+                print(f"Unsupported database type: {db['type']}")
+                continue
+            
+            if backup_file:
+                backup_files.append(backup_file)
+    
+    # Backup projects
+    if 'projects' in config:
+        for project in config['projects']:
+            backup_file = backup_project(project, backup_dir)
+            if backup_file:
+                backup_files.append(backup_file)
+    
+    # Upload to Azure Blob Storage using SAS token
+    if 'azure' in config and os.getenv('AZURE_STORAGE_ACCOUNT_NAME') and os.getenv('AZURE_STORAGE_SAS_TOKEN'):
+        azure_config = config['azure']
+        container_name = azure_config.get('container_name', 'backups')
+        
+        for backup_file in backup_files:
+            blob_name = f"backup_{date_str}/{os.path.basename(backup_file)}"
+            if upload_to_azure(backup_file, container_name, blob_name):
+                print(f"Successfully uploaded to Azure: {blob_name}")
+            else:
+                print(f"Failed to upload to Azure: {blob_name}")
+    else:
+        print("Azure configuration not found or SAS token not set")
+    
+    # Cleanup old local backups
+    cleanup_old_backups(backup_base, config.get('local_retention_days', 7))
+    
+    print(f"Backup completed successfully. Files: {backup_files}")
+
+def cleanup_old_backups(backup_base, retention_days):
+    """Remove backups older than retention_days"""
+    cutoff_time = datetime.datetime.now() - datetime.timedelta(days=retention_days)
+    
+    for item in os.listdir(backup_base):
+        item_path = os.path.join(backup_base, item)
+        if os.path.isdir(item_path) and item.startswith('backup_'):
+            try:
+                # Extract date from directory name
+                dir_date_str = item.replace('backup_', '')
+                dir_date = datetime.datetime.strptime(dir_date_str[:8], "%Y%m%d")
+                
+                if dir_date < cutoff_time:
+                    shutil.rmtree(item_path)
+                    print(f"Removed old backup: {item}")
+            except (ValueError, IndexError):
+                # Skip if directory name doesn't match expected format
+                continue
+
+if __name__ == "__main__":
+    main()
